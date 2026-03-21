@@ -1,0 +1,93 @@
+$hotel-primary: #2c3e50;
+$hotel-accent: #e67e22;
+$hotel-light: #ecf0f1;
+$hotel-text: #34495e;
+$font-base: 16px;
+$border-radius: 8px;
+
+@mixin button-style($bg-color) {
+  padding: 12px 24px;
+  background-color: $bg-color;
+  color: white;
+  border: none;
+  border-radius: $border-radius;
+  font-size: $font-base;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.room-card {
+  border: 1px solid #ddd;
+  border-radius: $border-radius;
+  width: 320px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background: white;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  &__image {
+    width: 100%;
+    height: 200px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    font-weight: 500;
+  }
+
+  &__content {
+    padding: 20px;
+
+    &__title {
+      color: $hotel-primary;
+      margin: 0 0 12px 0;
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    &__description {
+      color: $hotel-text;
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 0 0 16px 0;
+    }
+
+    &__price {
+      font-size: 20px;
+      font-weight: bold;
+      color: $hotel-accent;
+      margin-bottom: 16px;
+
+      span {
+        font-size: 14px;
+        color: #7f8c8d;
+        font-weight: normal;
+      }
+    }
+  }
+
+  &__button {
+    @include button-style($hotel-accent);
+    width: 100%;
+    margin-top: 10px;
+  }
+}
