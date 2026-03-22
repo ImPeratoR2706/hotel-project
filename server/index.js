@@ -1,6 +1,8 @@
 const express = require('express');
 const { nanoid } = require('nanoid');
 const cors = require('cors');
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
 
 const app = express();
 const port = 3000;
@@ -36,6 +38,69 @@ let rooms = [
     { id: nanoid(6), name: 'Studio', category: 'Premium', description: 'Номер-студия с кухней', price: 9000, capacity: 2, isAvailable: true }
 ];
 
+const swaggerOptions = {
+    definition: {
+        openapi: '3.0.0',
+        info: {
+            title: 'Hotel Management API',
+            version: '1.0.0',
+            description: 'API для управления номерами отеля',
+        },
+        servers: [
+            {
+                url: `http://localhost:${port}`,
+                description: 'Локальный сервер',
+            },
+        ],
+    },
+    apis: ['./index.js'],
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Room:
+ *       type: object
+ *       required:
+ *         - name
+ *         - price
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: Автоматически сгенерированный уникальный ID номера
+ *         name:
+ *           type: string
+ *           description: Название номера
+ *         category:
+ *           type: string
+ *           description: Категория номера
+ *         description:
+ *           type: string
+ *           description: Описание номера
+ *         price:
+ *           type: integer
+ *           description: Цена за ночь в рублях
+ *         capacity:
+ *           type: integer
+ *           description: Максимальная вместимость (человек)
+ *         isAvailable:
+ *           type: boolean
+ *           description: Доступен ли номер для бронирования
+ *       example:
+ *         id: "abc123"
+ *         name: "Люкс"
+ *         category: "Premium"
+ *         description: "Номер с видом на море"
+ *         price: 15000
+ *         capacity: 2
+ *         isAvailable: true
+ */
+
 function findRoomOr404(id, res) {
     const room = rooms.find(r => r.id == id);
     if (!room) {
@@ -49,10 +114,49 @@ app.get('/', (req, res) => {
     res.send('Hotel API Server');
 });
 
+/**
+ * @swagger
+ * /api/rooms:
+ *   get:
+ *     summary: Возвращает список всех номеров отеля
+ *     tags: [Rooms]
+ *     responses:
+ *       200:
+ *         description: Список номеров
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Room'
+ */
 app.get('/api/rooms', (req, res) => {
     res.json(rooms);
 });
 
+/**
+ * @swagger
+ * /api/rooms/{id}:
+ *   get:
+ *     summary: Получает номер отеля по ID
+ *     tags: [Rooms]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID номера отеля
+ *     responses:
+ *       200:
+ *         description: Данные номера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Room'
+ *       404:
+ *         description: Номер не найден
+ */
 app.get('/api/rooms/:id', (req, res) => {
     const id = req.params.id;
     const room = findRoomOr404(id, res);
@@ -60,6 +164,44 @@ app.get('/api/rooms/:id', (req, res) => {
     res.json(room);
 });
 
+/**
+ * @swagger
+ * /api/rooms:
+ *   post:
+ *     summary: Создает новый номер отеля
+ *     tags: [Rooms]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - price
+ *             properties:
+ *               name:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               price:
+ *                 type: integer
+ *               capacity:
+ *                 type: integer
+ *               isAvailable:
+ *                 type: boolean
+ *     responses:
+ *       201:
+ *         description: Номер успешно создан
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Room'
+ *       400:
+ *         description: Ошибка в теле запроса
+ */
 app.post('/api/rooms', (req, res) => {
     const { name, category, description, price, capacity, isAvailable } = req.body;
     const newRoom = {
@@ -75,6 +217,50 @@ app.post('/api/rooms', (req, res) => {
     res.status(201).json(newRoom);
 });
 
+/**
+ * @swagger
+ * /api/rooms/{id}:
+ *   patch:
+ *     summary: Обновляет данные номера отеля
+ *     tags: [Rooms]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID номера отеля
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               price:
+ *                 type: integer
+ *               capacity:
+ *                 type: integer
+ *               isAvailable:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Обновленный номер
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Room'
+ *       400:
+ *         description: Нет данных для обновления
+ *       404:
+ *         description: Номер не найден
+ */
 app.patch('/api/rooms/:id', (req, res) => {
     const id = req.params.id;
     const room = findRoomOr404(id, res);
@@ -96,6 +282,25 @@ app.patch('/api/rooms/:id', (req, res) => {
     res.json(room);
 });
 
+/**
+ * @swagger
+ * /api/rooms/{id}:
+ *   delete:
+ *     summary: Удаляет номер отеля
+ *     tags: [Rooms]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID номера отеля
+ *     responses:
+ *       204:
+ *         description: Номер успешно удален
+ *       404:
+ *         description: Номер не найден
+ */
 app.delete('/api/rooms/:id', (req, res) => {
     const id = req.params.id;
     const exists = rooms.some((r) => r.id === id);
@@ -116,4 +321,5 @@ app.use((err, req, res, next) => {
 
 app.listen(port, () => {
     console.log(`Server started on http://localhost:${port}`);
+    console.log(`Swagger UI available at http://localhost:${port}/api-docs`);
 });
