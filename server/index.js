@@ -1,6 +1,7 @@
 const express = require('express');
 const { nanoid } = require('nanoid');
 const cors = require('cors');
+const bcrypt = require('bcrypt');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
@@ -9,7 +10,7 @@ const port = 3000;
 
 app.use(cors({
     origin: "http://localhost:3001",
-    methods: ["GET", "POST", "PATCH", "DELETE"],
+    methods: ["GET", "POST", "PATCH", "DELETE", "PUT"],
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
@@ -25,17 +26,18 @@ app.use((req, res, next) => {
     next();
 });
 
+let users = [];
 let rooms = [
-    { id: nanoid(6), name: 'Standard', category: 'Economy', description: 'Уютный номер для одного-двух гостей', price: 5000, capacity: 2, isAvailable: true },
-    { id: nanoid(6), name: 'Comfort', category: 'Standard', description: 'Номер с улучшенной отделкой и завтраком', price: 7500, capacity: 2, isAvailable: true },
-    { id: nanoid(6), name: 'Deluxe', category: 'Premium', description: 'Просторный номер с видом на город', price: 12000, capacity: 3, isAvailable: false },
-    { id: nanoid(6), name: 'Suite', category: 'Premium', description: 'Двухкомнатный номер с гостиной', price: 25000, capacity: 4, isAvailable: true },
-    { id: nanoid(6), name: 'Presidential', category: 'Luxury', description: 'Роскошный номер с панорамными окнами', price: 50000, capacity: 6, isAvailable: true },
-    { id: nanoid(6), name: 'Family', category: 'Standard', description: 'Номер для семьи с детьми', price: 15000, capacity: 5, isAvailable: true },
-    { id: nanoid(6), name: 'Single', category: 'Economy', description: 'Компактный номер для одного гостя', price: 3000, capacity: 1, isAvailable: true },
-    { id: nanoid(6), name: 'Double', category: 'Standard', description: 'Номер с двуспальной кроватью', price: 6000, capacity: 2, isAvailable: false },
-    { id: nanoid(6), name: 'Twin', category: 'Standard', description: 'Номер с двумя отдельными кроватями', price: 6500, capacity: 2, isAvailable: true },
-    { id: nanoid(6), name: 'Studio', category: 'Premium', description: 'Номер-студия с кухней', price: 9000, capacity: 2, isAvailable: true }
+    { id: nanoid(6), name: 'Standard', category: 'Economy', description: 'Уютный номер', price: 5000, capacity: 2, isAvailable: true },
+    { id: nanoid(6), name: 'Comfort', category: 'Standard', description: 'Номер с завтраком', price: 7500, capacity: 2, isAvailable: true },
+    { id: nanoid(6), name: 'Deluxe', category: 'Premium', description: 'Вид на город', price: 12000, capacity: 3, isAvailable: false },
+    { id: nanoid(6), name: 'Suite', category: 'Premium', description: 'Двухкомнатный', price: 25000, capacity: 4, isAvailable: true },
+    { id: nanoid(6), name: 'Presidential', category: 'Luxury', description: 'Панорамные окна', price: 50000, capacity: 6, isAvailable: true },
+    { id: nanoid(6), name: 'Family', category: 'Standard', description: 'Для семьи', price: 15000, capacity: 5, isAvailable: true },
+    { id: nanoid(6), name: 'Single', category: 'Economy', description: 'Для одного', price: 3000, capacity: 1, isAvailable: true },
+    { id: nanoid(6), name: 'Double', category: 'Standard', description: 'Двуспальная кровать', price: 6000, capacity: 2, isAvailable: false },
+    { id: nanoid(6), name: 'Twin', category: 'Standard', description: 'Две кровати', price: 6500, capacity: 2, isAvailable: true },
+    { id: nanoid(6), name: 'Studio', category: 'Premium', description: 'С кухней', price: 9000, capacity: 2, isAvailable: true }
 ];
 
 const swaggerOptions = {
@@ -44,7 +46,7 @@ const swaggerOptions = {
         info: {
             title: 'Hotel Management API',
             version: '1.0.0',
-            description: 'API для управления номерами отеля',
+            description: 'API для управления номерами отеля и пользователями',
         },
         servers: [
             {
@@ -60,46 +62,23 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-/**
- * @swagger
- * components:
- *   schemas:
- *     Room:
- *       type: object
- *       required:
- *         - name
- *         - price
- *       properties:
- *         id:
- *           type: string
- *           description: Автоматически сгенерированный уникальный ID номера
- *         name:
- *           type: string
- *           description: Название номера
- *         category:
- *           type: string
- *           description: Категория номера
- *         description:
- *           type: string
- *           description: Описание номера
- *         price:
- *           type: integer
- *           description: Цена за ночь в рублях
- *         capacity:
- *           type: integer
- *           description: Максимальная вместимость (человек)
- *         isAvailable:
- *           type: boolean
- *           description: Доступен ли номер для бронирования
- *       example:
- *         id: "abc123"
- *         name: "Люкс"
- *         category: "Premium"
- *         description: "Номер с видом на море"
- *         price: 15000
- *         capacity: 2
- *         isAvailable: true
- */
+async function hashPassword(password) {
+    const rounds = 10;
+    return bcrypt.hash(password, rounds);
+}
+
+async function verifyPassword(password, passwordHash) {
+    return bcrypt.compare(password, passwordHash);
+}
+
+function findUserOr404(email, res) {
+    const user = users.find(u => u.email == email);
+    if (!user) {
+        res.status(404).json({ error: "User not found" });
+        return null;
+    }
+    return user;
+}
 
 function findRoomOr404(id, res) {
     const room = rooms.find(r => r.id == id);
@@ -110,6 +89,95 @@ function findRoomOr404(id, res) {
     return room;
 }
 
+/**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: Регистрация пользователя
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - first_name
+ *               - last_name
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               first_name:
+ *                 type: string
+ *               last_name:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Пользователь создан
+ */
+app.post('/api/auth/register', async (req, res) => {
+    const { email, first_name, last_name, password } = req.body;
+    if (!email || !password || !first_name || !last_name) {
+        return res.status(400).json({ error: "All fields are required" });
+    }
+    const exists = users.some(u => u.email === email);
+    if (exists) {
+        return res.status(409).json({ error: "Email already exists" });
+    }
+    const hashedPassword = await hashPassword(password);
+    const newUser = {
+        id: nanoid(6),
+        email,
+        first_name,
+        last_name,
+        password: hashedPassword
+    };
+    users.push(newUser);
+    res.status(201).json({ id: newUser.id, email: newUser.email, first_name: newUser.first_name, last_name: newUser.last_name });
+});
+
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Вход в систему
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Успешный вход
+ */
+app.post('/api/auth/login', async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+    }
+    const user = findUserOr404(email, res);
+    if (!user) return;
+    const isValid = await verifyPassword(password, user.password);
+    if (!isValid) {
+        return res.status(401).json({ error: "Invalid credentials" });
+    }
+    res.status(200).json({ login: true, user: { id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name } });
+});
+
 app.get('/', (req, res) => {
     res.send('Hotel API Server');
 });
@@ -118,17 +186,11 @@ app.get('/', (req, res) => {
  * @swagger
  * /api/rooms:
  *   get:
- *     summary: Возвращает список всех номеров отеля
+ *     summary: Получить список номеров
  *     tags: [Rooms]
  *     responses:
  *       200:
  *         description: Список номеров
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Room'
  */
 app.get('/api/rooms', (req, res) => {
     res.json(rooms);
@@ -138,7 +200,7 @@ app.get('/api/rooms', (req, res) => {
  * @swagger
  * /api/rooms/{id}:
  *   get:
- *     summary: Получает номер отеля по ID
+ *     summary: Получить номер по ID
  *     tags: [Rooms]
  *     parameters:
  *       - in: path
@@ -146,16 +208,9 @@ app.get('/api/rooms', (req, res) => {
  *         schema:
  *           type: string
  *         required: true
- *         description: ID номера отеля
  *     responses:
  *       200:
  *         description: Данные номера
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Room'
- *       404:
- *         description: Номер не найден
  */
 app.get('/api/rooms/:id', (req, res) => {
     const id = req.params.id;
@@ -168,7 +223,7 @@ app.get('/api/rooms/:id', (req, res) => {
  * @swagger
  * /api/rooms:
  *   post:
- *     summary: Создает новый номер отеля
+ *     summary: Создать номер
  *     tags: [Rooms]
  *     requestBody:
  *       required: true
@@ -176,31 +231,9 @@ app.get('/api/rooms/:id', (req, res) => {
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - name
- *               - price
- *             properties:
- *               name:
- *                 type: string
- *               category:
- *                 type: string
- *               description:
- *                 type: string
- *               price:
- *                 type: integer
- *               capacity:
- *                 type: integer
- *               isAvailable:
- *                 type: boolean
  *     responses:
  *       201:
- *         description: Номер успешно создан
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Room'
- *       400:
- *         description: Ошибка в теле запроса
+ *         description: Номер создан
  */
 app.post('/api/rooms', (req, res) => {
     const { name, category, description, price, capacity, isAvailable } = req.body;
@@ -220,8 +253,8 @@ app.post('/api/rooms', (req, res) => {
 /**
  * @swagger
  * /api/rooms/{id}:
- *   patch:
- *     summary: Обновляет данные номера отеля
+ *   put:
+ *     summary: Обновить номер
  *     tags: [Rooms]
  *     parameters:
  *       - in: path
@@ -229,56 +262,27 @@ app.post('/api/rooms', (req, res) => {
  *         schema:
  *           type: string
  *         required: true
- *         description: ID номера отеля
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               category:
- *                 type: string
- *               description:
- *                 type: string
- *               price:
- *                 type: integer
- *               capacity:
- *                 type: integer
- *               isAvailable:
- *                 type: boolean
  *     responses:
  *       200:
- *         description: Обновленный номер
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Room'
- *       400:
- *         description: Нет данных для обновления
- *       404:
- *         description: Номер не найден
+ *         description: Номер обновлен
  */
-app.patch('/api/rooms/:id', (req, res) => {
+app.put('/api/rooms/:id', (req, res) => {
     const id = req.params.id;
     const room = findRoomOr404(id, res);
     if (!room) return;
-
-    if (req.body?.name === undefined && req.body?.price === undefined && req.body?.capacity === undefined) {
-        return res.status(400).json({ error: "Nothing to update" });
-    }
-
     const { name, category, description, price, capacity, isAvailable } = req.body;
-
     if (name !== undefined) room.name = name.trim();
     if (category !== undefined) room.category = category.trim();
     if (description !== undefined) room.description = description.trim();
     if (price !== undefined) room.price = Number(price);
     if (capacity !== undefined) room.capacity = Number(capacity);
     if (isAvailable !== undefined) room.isAvailable = Boolean(isAvailable);
-
     res.json(room);
 });
 
@@ -286,7 +290,7 @@ app.patch('/api/rooms/:id', (req, res) => {
  * @swagger
  * /api/rooms/{id}:
  *   delete:
- *     summary: Удаляет номер отеля
+ *     summary: Удалить номер
  *     tags: [Rooms]
  *     parameters:
  *       - in: path
@@ -294,19 +298,15 @@ app.patch('/api/rooms/:id', (req, res) => {
  *         schema:
  *           type: string
  *         required: true
- *         description: ID номера отеля
  *     responses:
  *       204:
- *         description: Номер успешно удален
- *       404:
- *         description: Номер не найден
+ *         description: Номер удален
  */
 app.delete('/api/rooms/:id', (req, res) => {
     const id = req.params.id;
-    const exists = rooms.some((r) => r.id === id);
+    const exists = rooms.some(r => r.id === id);
     if (!exists) return res.status(404).json({ error: "Room not found" });
-
-    rooms = rooms.filter((r) => r.id !== id);
+    rooms = rooms.filter(r => r.id !== id);
     res.status(204).send();
 });
 
