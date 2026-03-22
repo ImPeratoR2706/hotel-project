@@ -1,21 +1,15 @@
 const express = require('express');
 const { nanoid } = require('nanoid');
+const cors = require('cors');
 
 const app = express();
 const port = 3000;
 
-let rooms = [
-    { id: nanoid(6), name: 'Standard', price: 5000, capacity: 2, isAvailable: true },
-    { id: nanoid(6), name: 'Comfort', price: 7500, capacity: 2, isAvailable: true },
-    { id: nanoid(6), name: 'Deluxe', price: 12000, capacity: 3, isAvailable: false },
-    { id: nanoid(6), name: 'Suite', price: 25000, capacity: 4, isAvailable: true },
-    { id: nanoid(6), name: 'Presidential', price: 50000, capacity: 6, isAvailable: true },
-    { id: nanoid(6), name: 'Family', price: 15000, capacity: 5, isAvailable: true },
-    { id: nanoid(6), name: 'Single', price: 3000, capacity: 1, isAvailable: true },
-    { id: nanoid(6), name: 'Double', price: 6000, capacity: 2, isAvailable: false },
-    { id: nanoid(6), name: 'Twin', price: 6500, capacity: 2, isAvailable: true },
-    { id: nanoid(6), name: 'Studio', price: 9000, capacity: 2, isAvailable: true }
-];
+app.use(cors({
+    origin: "http://localhost:3001",
+    methods: ["GET", "POST", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
 app.use(express.json());
 
@@ -28,6 +22,19 @@ app.use((req, res, next) => {
     });
     next();
 });
+
+let rooms = [
+    { id: nanoid(6), name: 'Standard', category: 'Economy', description: 'Уютный номер для одного-двух гостей', price: 5000, capacity: 2, isAvailable: true },
+    { id: nanoid(6), name: 'Comfort', category: 'Standard', description: 'Номер с улучшенной отделкой и завтраком', price: 7500, capacity: 2, isAvailable: true },
+    { id: nanoid(6), name: 'Deluxe', category: 'Premium', description: 'Просторный номер с видом на город', price: 12000, capacity: 3, isAvailable: false },
+    { id: nanoid(6), name: 'Suite', category: 'Premium', description: 'Двухкомнатный номер с гостиной', price: 25000, capacity: 4, isAvailable: true },
+    { id: nanoid(6), name: 'Presidential', category: 'Luxury', description: 'Роскошный номер с панорамными окнами', price: 50000, capacity: 6, isAvailable: true },
+    { id: nanoid(6), name: 'Family', category: 'Standard', description: 'Номер для семьи с детьми', price: 15000, capacity: 5, isAvailable: true },
+    { id: nanoid(6), name: 'Single', category: 'Economy', description: 'Компактный номер для одного гостя', price: 3000, capacity: 1, isAvailable: true },
+    { id: nanoid(6), name: 'Double', category: 'Standard', description: 'Номер с двуспальной кроватью', price: 6000, capacity: 2, isAvailable: false },
+    { id: nanoid(6), name: 'Twin', category: 'Standard', description: 'Номер с двумя отдельными кроватями', price: 6500, capacity: 2, isAvailable: true },
+    { id: nanoid(6), name: 'Studio', category: 'Premium', description: 'Номер-студия с кухней', price: 9000, capacity: 2, isAvailable: true }
+];
 
 function findRoomOr404(id, res) {
     const room = rooms.find(r => r.id == id);
@@ -54,10 +61,12 @@ app.get('/api/rooms/:id', (req, res) => {
 });
 
 app.post('/api/rooms', (req, res) => {
-    const { name, price, capacity, isAvailable } = req.body;
+    const { name, category, description, price, capacity, isAvailable } = req.body;
     const newRoom = {
         id: nanoid(6),
         name: name.trim(),
+        category: category.trim(),
+        description: description.trim(),
         price: Number(price),
         capacity: Number(capacity),
         isAvailable: Boolean(isAvailable)
@@ -75,9 +84,11 @@ app.patch('/api/rooms/:id', (req, res) => {
         return res.status(400).json({ error: "Nothing to update" });
     }
 
-    const { name, price, capacity, isAvailable } = req.body;
+    const { name, category, description, price, capacity, isAvailable } = req.body;
 
     if (name !== undefined) room.name = name.trim();
+    if (category !== undefined) room.category = category.trim();
+    if (description !== undefined) room.description = description.trim();
     if (price !== undefined) room.price = Number(price);
     if (capacity !== undefined) room.capacity = Number(capacity);
     if (isAvailable !== undefined) room.isAvailable = Boolean(isAvailable);
